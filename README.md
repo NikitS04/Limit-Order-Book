@@ -41,7 +41,7 @@ Count trades (minus header → ~200 trades in demo):
 tail -n +2 trades.csv | wc -l
 ```
 
-## 🔥 1,000,000-Event Benchmark
+## 1,000,000-Event Benchmark
 
 ### Generate Synthetic Dataset
 ```bash
