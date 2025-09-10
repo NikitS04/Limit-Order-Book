@@ -1,0 +1,21 @@
+/build/
+/build-*/
+CMakeFiles/
+/CMakeCache.txt
+cmake-install.cmake
+compile_commands.json
+*.o
+*.a
+*.so
+*.dylib
+# local outputs & datasets
+*.csv
+metrics.json
+depth.csv
+trades.csv
+events.csv
+!data/demo_long.csv
+# IDE
+.vscode/
+.idea/
+.DS_Store
