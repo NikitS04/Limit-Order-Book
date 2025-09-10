@@ -1,31 +1,18 @@
 # Limit Order Book + Matching Engine (C++20)
-### Zero-Allocation Hot Path
 
-A high-performance, deterministic price–time Limit Order Book (LOB) with single-threaded matching core and multi-threaded pipeline architecture. Features zero-allocation hot path using intrusive FIFO structures and preallocated memory pools.
+A high-performance, deterministic price–time Limit Order Book (LOB) with single-threaded matching core and multi-threaded pipeline architecture.
 
 
-## 🚀 Key Features
+## Key Features
 
 - **Deterministic Core**: Single-threaded matching engine ensures consistent results
-- **Zero-Allocation Hot Path**: Intrusive FIFO + preallocated pools (no heap allocations per order)
 - **Lock-Free Concurrency**: SPSC queues with acquire/release semantics
 - **Built-in Metrics**: Real-time throughput and latency reporting (p50/p95/p99)
 - **High Performance**: >500K messages/second on modern hardware
 
-## 📊 Performance Benchmarks
+## Quick Start
 
-| Metric | Value |
-|--------|-------|
-| **Throughput** | ~1.12M msgs/s |
-| **Latency p50** | 42 ns |
-| **Latency p95** | 167 ns |
-| **Latency p99** | 500 ns |
-
-*Tested on Apple Silicon with Release build optimizations*
-
-## 🏃 Quick Start
-
-Get up and running in 3 commands:
+Start the program in these 3 commands:
 
 ### 1. Configure & Build (Release, Optimized)
 ```bash
@@ -101,7 +88,7 @@ print(f"match: {m['match_msgs_per_s']:.0f} msg/s | p50 {m['match_p50_ns']} ns | 
 PY
 ```
 
-## 🛠️ Build & Test
+##  Build & Test
 
 ### Build
 ```bash
@@ -117,7 +104,7 @@ cmake --build . -j
 ctest --output-on-failure
 ```
 
-## 📝 Usage
+## Usage
 
 ```bash
 ./lob --in <input.csv> --trades <trades.csv> --depth <depth.csv> \
@@ -134,7 +121,7 @@ ctest --output-on-failure
 | `--snapshot-every` | Write L1 snapshot every N events (0 = off) |
 | `--ring` | Capacity for SPSC rings (power-of-two recommended) |
 
-## 📋 Data Formats
+## Data Formats
 
 ### Input: events.csv
 ```csv
@@ -161,4 +148,4 @@ ts_ns,bid_px,bid_sz,ask_px,ask_sz
 - `match_p50_ns` / `_p95_ns` / `_p99_ns` — Event processing latency (nanoseconds)
 - `match_p50_us` / `_p95_us` / `_p99_us` — Same latencies in microseconds
 
-**Language**: C++20 | **License**: [Add your license] | **Author**: [Your name]
+**Language**: C++20 | **Author**: Nikit Sajiv
