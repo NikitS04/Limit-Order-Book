@@ -1,0 +1,7 @@
+ts_ns,side,type,id,price,qty
+1,S,NEW,10,101,5
+2,B,NEW,11,101,3
+3,B,NEW,12,101,2
+4,B,NEW,13,100,4
+5,S,NEW,14,100,1
+6,S,NEW,15,100,3
