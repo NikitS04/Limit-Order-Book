@@ -1,9 +1,11 @@
 #pragma once
 #include <vector>
 #include <cstddef>
-#include <stdexcept>
 namespace lob
 {
+  // Fixed-capacity object pool. All storage is allocated up front; alloc/free
+  // never touch the heap. alloc() returns nullptr when the pool is exhausted
+  // so the hot path never throws.
   template <typename T>
   class Pool
   {
@@ -16,19 +18,20 @@ namespace lob
       for (size_t i = 0; i < cap; ++i)
         free_[i] = cap - 1 - i;
     }
-    T *alloc()
+    T *alloc() noexcept
     {
       if (free_.empty())
-        throw std::runtime_error("Pool exhausted");
+        return nullptr;
       size_t idx = free_.back();
       free_.pop_back();
       return &storage_[idx];
     }
-    void free(T *p)
+    void free(T *p) noexcept
     {
       size_t idx = static_cast<size_t>(p - storage_.data());
-      free_.push_back(idx);
+      free_.push_back(idx); // capacity reserved in ctor, never reallocates
     }
-    size_t capacity() const { return storage_.size(); }
+    size_t capacity() const noexcept { return storage_.size(); }
+    size_t available() const noexcept { return free_.size(); }
   };
 }

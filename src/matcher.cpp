@@ -1,4 +1,5 @@
 #include "lob/matcher.hpp"
+#include "lob/apply.hpp"
 #include <chrono>
 #include <thread>
 namespace lob
@@ -13,25 +14,14 @@ namespace lob
       while (in_.try_pop(e))
       {
         had = true;
+        // Note: this window includes two clock reads (~20-40 ns on typical
+        // x86 Linux) and any time spent blocked pushing trades to a full
+        // output ring. bench/core_bench.cpp measures the engine without either.
         auto t0 = Clock::now();
-        switch (e.type)
-        {
-        case Type::Limit:
-          onLimit(e);
-          break;
-        case Type::Market:
-          onMarket(e);
-          break;
-        case Type::Cancel:
-          onCancel(e);
-          break;
-        case Type::Modify:
-          onModify(e);
-          break;
-        }
+        process(e);
         auto t1 = Clock::now();
         auto ns = std::chrono::duration_cast<std::chrono::nanoseconds>(t1 - t0).count();
-        metrics_.match_latency_us.record_ns((uint64_t)ns);
+        metrics_.match_latency.record_ns((uint64_t)ns);
         ++processed_;
         maybe_snapshot(e.ts_ns);
         metrics_.matched_msgs++;
@@ -44,25 +34,20 @@ namespace lob
       }
     }
   }
-  void Matcher::onLimit(const Event &e)
+
+  void Matcher::process(const Event &e)
   {
-    Qty rem = (e.side == Side::Buy) ? book_.matchBuy(e.qty, e.id, e.px, e.ts_ns, [&](TsNs ts, OrderId buy_id, OrderId sell_id, Px px, Qty q)
-                                                     { Trade t{ts,buy_id,sell_id,px,q}; while(!out_.try_push(t)){}; })
-                                    : book_.matchSell(e.qty, e.id, e.px, e.ts_ns, [&](TsNs ts, OrderId buy_id, OrderId sell_id, Px px, Qty q)
-                                                      { Trade t{ts,buy_id,sell_id,px,q}; while(!out_.try_push(t)){}; });
-    if (rem > 0)
-      book_.addLimit(e.id, e.side, e.px, rem, e.ts_ns);
+    apply_event(book_, e, [this](TsNs ts, OrderId buy_id, OrderId sell_id, Px px, Qty q)
+                { emit_trade(ts, buy_id, sell_id, px, q); });
   }
-  void Matcher::onMarket(const Event &e)
+
+  void Matcher::emit_trade(TsNs ts, OrderId buy_id, OrderId sell_id, Px px, Qty q)
   {
-    const Px ignore = -1;
-    (void)((e.side == Side::Buy) ? book_.matchBuy(e.qty, e.id, ignore, e.ts_ns, [&](TsNs ts, OrderId buy_id, OrderId sell_id, Px px, Qty q)
-                                                  { Trade t{ts,buy_id,sell_id,px,q}; while(!out_.try_push(t)){}; })
-                                 : book_.matchSell(e.qty, e.id, ignore, e.ts_ns, [&](TsNs ts, OrderId buy_id, OrderId sell_id, Px px, Qty q)
-                                                   { Trade t{ts,buy_id,sell_id,px,q}; while(!out_.try_push(t)){}; }));
+    Trade t{ts, buy_id, sell_id, px, q};
+    while (!out_.try_push(t))
+      std::this_thread::yield();
   }
-  void Matcher::onCancel(const Event &e) { book_.cancel(e.id); }
-  void Matcher::onModify(const Event &e) { book_.modify(e.id, e.qty, e.px, e.ts_ns); }
+
   void Matcher::maybe_snapshot(TsNs ts)
   {
     if (snapshot_every_ <= 0)
@@ -72,8 +57,7 @@ namespace lob
       auto t = book_.top();
       DepthL1 d{ts, t.bid_px, t.bid_sz, t.ask_px, t.ask_sz};
       while (!depth_out_.try_push(d))
-      {
-      };
+        std::this_thread::yield();
       metrics_.snapshot_count++;
     }
   }

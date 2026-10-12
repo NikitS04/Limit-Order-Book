@@ -21,12 +21,10 @@ namespace lob
     Matcher(SpscRing<Event> &in, SpscRing<Trade> &out, SpscRing<DepthL1> &depth_out, Book &book, Metrics &metrics, int snapshot_every)
         : in_(in), out_(out), depth_out_(depth_out), book_(book), metrics_(metrics), snapshot_every_(snapshot_every) {}
     void run(std::atomic<bool> &ingest_done);
-    void onLimit(const Event &e);
-    void onMarket(const Event &e);
-    void onCancel(const Event &e);
-    void onModify(const Event &e);
+    void process(const Event &e);
 
   private:
+    void emit_trade(TsNs ts, OrderId buy_id, OrderId sell_id, Px px, Qty q);
     void maybe_snapshot(TsNs ts);
     SpscRing<Event> &in_;
     SpscRing<Trade> &out_;

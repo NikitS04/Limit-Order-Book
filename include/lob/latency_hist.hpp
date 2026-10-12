@@ -1,13 +1,15 @@
 #pragma once
-#include <array>
+#include <vector>
 #include <cstdint>
 
 namespace lob {
 
-// 1,000,000 ns = 1 ms; overflow bin holds anything >= 1 ms
+// 1 ns buckets up to 1 ms; the last bin is an overflow bucket for >= 1 ms.
+// Heap-backed: 8 MB of bins as a std::array blew the stack whenever a
+// Metrics object was declared as a local.
 struct LatencyHist {
   static constexpr uint32_t MAX_NS = 1'000'000;
-  std::array<uint64_t, MAX_NS + 1> bins{}; // [0..MAX_NS-1] in ns, MAX_NS = overflow
+  std::vector<uint64_t> bins = std::vector<uint64_t>(MAX_NS + 1, 0);
   uint64_t total{0};
 
   inline void record_ns(uint64_t ns) {
@@ -16,7 +18,7 @@ struct LatencyHist {
     ++total;
   }
 
-  // percentile in *nanoseconds*
+  // percentile in nanoseconds, p in [0, 1]
   uint64_t pct_ns(double p) const {
     if (!total) return 0;
     uint64_t target = static_cast<uint64_t>(p * (total - 1));
@@ -25,7 +27,7 @@ struct LatencyHist {
       acc += bins[i];
       if (acc > target) return i;
     }
-    return 0;
+    return MAX_NS;
   }
 };
 
