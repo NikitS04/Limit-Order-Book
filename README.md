@@ -62,16 +62,22 @@ The pipeline's throughput is bounded by CSV parsing on the ingest thread: the ma
 
 ### Example results
 
-2-vCPU Intel Xeon @ 2.1 GHz cloud VM, GCC 13.3, `-O3`, 1M events, median of 5 runs. Re-run on your own hardware before quoting numbers.
+Apple M1 (8 cores), Apple clang 17, `-O3` (no `-march=native`), 1M events. Core numbers are the median of 5 runs;
+pipeline numbers are the range over 3 runs. Re-run on your own hardware before quoting numbers.
 
 | Workload | Core throughput | Core p50 / p99 / p99.9 | Pipeline (CSV-bound) |
 |----------|-----------------|------------------------|----------------------|
-| Mixed (45/40/10/5) | 7.6M msgs/s | 123 / 414 / 665 ns | 1.2 to 1.4M msgs/s |
-| Add-only (`--legacy`) | 12.0M msgs/s | 102 / 311 / 1721 ns | 1.2 to 1.4M msgs/s |
+| Mixed (45/40/10/5) | 10.6M msgs/s | 83 / 333 / 625 ns | 1.0 to 1.2M msgs/s |
+| Add-only (`--legacy`) | 11.8M msgs/s | 42 / 167 / 375 ns | 1.2M msgs/s |
 
-**Latency methodology:** each sample brackets one event with two `steady_clock::now()` calls, which cost ~30 ns each on this machine (`lob_bench` measures and prints this). Treat the low percentiles as upper bounds. In the pipeline, latency also includes any time the matcher spends blocked on a full output ring.
+For comparison, a 2-vCPU Intel Xeon @ 2.1 GHz cloud VM (GCC 13.3, `-O3`) gave 7.6M msgs/s mixed and 12.0M msgs/s
+add-only in the core, with the same 1.2 to 1.4M msgs/s pipeline ceiling.
+
+**Latency methodology:** each sample brackets one event with two `steady_clock::now()` calls, which cost ~26 ns each on the M1 (`lob_bench` measures and prints this). Treat the low percentiles as upper bounds. In the pipeline, latency also includes any time the matcher spends blocked on a full output ring.
 
 ### metrics.json
+
+Pipeline run on the M1, mixed workload:
 
 ```json
 {
@@ -79,13 +85,13 @@ The pipeline's throughput is bounded by CSV parsing on the ingest thread: the ma
   "matched_msgs": 1000000,
   "output_msgs": 286384,
   "snapshot_count": 0,
-  "ingest_msgs_per_s": 1226976,
-  "match_msgs_per_s": 1231335,
-  "output_msgs_per_s": 352635,
-  "match_p50_ns": 138,
-  "match_p95_ns": 406,
-  "match_p99_ns": 625,
-  "match_p999_ns": 1324
+  "ingest_msgs_per_s": 1166470,
+  "match_msgs_per_s": 1166478,
+  "output_msgs_per_s": 334060,
+  "match_p50_ns": 83,
+  "match_p95_ns": 250,
+  "match_p99_ns": 417,
+  "match_p999_ns": 3041
 }
 ```
 
